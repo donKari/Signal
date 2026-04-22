@@ -14,7 +14,9 @@
     "bcryptjs": "^2.4.3",
     "jsonwebtoken": "^9.0.2",
     "zustand": "^4.5.2",
-    "clsx": "^2.1.1"
+    "clsx": "^2.1.1",
+    "yahoo-finance2": "^2.11.3",
+    "resend": "^3.2.0"
   },
   "devDependencies": {
     "typescript": "^5",
