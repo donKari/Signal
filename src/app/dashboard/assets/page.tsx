@@ -283,17 +283,17 @@ export default function AssetsPage() {
   const refreshTimer = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const { assets, isLoading, lastFetch, error, searchQuery, activeCategory,
-          init, fetchPrices, toggleWatch, setSearch, setCategory, getFiltered } = useAssetsStore()
+          fetchPrices, toggleWatch, setSearch, setCategory, getFiltered } = useAssetsStore()
 
   useEffect(() => {
     const session = getSession()
     if (!session) { router.replace('/login'); return }
     setUser(session)
-    init()
+    fetchPrices()
     // Auto-refresh every 60s
     refreshTimer.current = setInterval(() => fetchPrices(), 60_000)
     return () => { if (refreshTimer.current) clearInterval(refreshTimer.current) }
-  }, [router, init, fetchPrices])
+  }, [router, fetchPrices])
 
   function handleLogout() { logout(); router.push('/login') }
 
@@ -303,7 +303,7 @@ export default function AssetsPage() {
       const updated = assets.find(a => a.id === selectedAsset.id)
       if (updated) setSelectedAsset(updated)
     }
-  }, [assets])
+  }, [assets, selectedAsset])
 
   if (!user) {
     return (

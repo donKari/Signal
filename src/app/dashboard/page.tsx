@@ -19,7 +19,7 @@ function DashboardContent() {
   const searchParams = useSearchParams()
   const [user, setUser] = useState<User | null>(null)
   const [showWelcome, setShowWelcome] = useState(false)
-  const { assets, init: initAssets } = useAssetsStore()
+  const { assets, fetchPrices: initAssets } = useAssetsStore()
   const watchedCount = assets.filter(a => a.isWatched).length
 
   useEffect(() => {
