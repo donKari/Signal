@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { getSession, logout } from '@/lib/auth'
@@ -13,7 +13,7 @@ const PLAN_COLORS = {
 
 const PLAN_MAX_ALERTS = { free: 3, pro: Infinity, expert: Infinity }
 
-export default function DashboardPage() {
+function DashboardContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [user, setUser] = useState<User | null>(null)
@@ -282,5 +282,19 @@ export default function DashboardPage() {
         }
       `}</style>
     </div>
+  )
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-bg flex items-center justify-center">
+          <div className="w-6 h-6 border border-accent border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <DashboardContent />
+    </Suspense>
   )
 }
