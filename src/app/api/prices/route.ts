@@ -4,7 +4,8 @@
 // Stocks  → yahoo-finance2 (unofficial Yahoo Finance, no key needed)
 
 import { NextRequest, NextResponse } from 'next/server'
-import yahooFinance from 'yahoo-finance2'
+import * as yahooFinanceModule from 'yahoo-finance2'
+const yahooFinance = (yahooFinanceModule as any).default ?? yahooFinanceModule
 
 const CRYPTO_IDS = [
   'bitcoin', 'ethereum', 'solana', 'binancecoin', 'ripple',
