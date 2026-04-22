@@ -34,7 +34,7 @@
     line-height: 1.6;
   }
 
-  /* NOISE OVERLAY */
+  /* NOISE  OVERLAY */
   body::before {
     content: '';
     position: fixed;
