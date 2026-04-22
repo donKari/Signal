@@ -15,7 +15,7 @@ import {
   type CreateAlertInput,
 } from '@/lib/alerts'
 
-// ─── Sidebar ────────────────────────────────────────────────────
+// ─── Sidebar ─────────────────────────────────────────────────────
 function Sidebar({ user, onLogout }: { user: User; onLogout: () => void }) {
   const { alerts } = useAlertsStore()
   const activeCount = alerts.filter(a => a.status === 'active' && a.userId === user.id).length
@@ -37,19 +37,19 @@ function Sidebar({ user, onLogout }: { user: User; onLogout: () => void }) {
       <nav className="flex-1 px-3 py-4">
         <div className="font-mono text-[10px] text-muted tracking-[0.15em] uppercase px-3 mb-2">Navigation</div>
         {[
-          { icon: '📊', label: 'Dashboard',  href: '/dashboard' },
+          { icon: '📊', label: 'Dashboard',   href: '/dashboard' },
           { icon: '🔔', label: 'Mes alertes', href: '/dashboard/alerts', active: true, badge: activeCount || null },
           { icon: '📈', label: 'Mes actifs',  href: '/dashboard/assets' },
           { icon: '⚙️', label: 'Paramètres',  href: '/dashboard/settings' },
         ].map(item => (
           <Link key={item.label} href={item.href}
             className={`flex items-center gap-3 px-3 py-2.5 mb-1 font-display font-semibold text-sm tracking-wide transition-all ${
-              item.active ? 'bg-accent/10 text-accent border-l-2 border-accent pl-[10px]' : 'text-muted hover:text-text hover:bg-surface2'
+              (item as any).active ? 'bg-accent/10 text-accent border-l-2 border-accent pl-[10px]' : 'text-muted hover:text-text hover:bg-surface2'
             }`}>
             <span>{item.icon}</span>
             <span className="flex-1">{item.label}</span>
-            {item.badge ? (
-              <span className="bg-accent text-bg font-mono text-[9px] font-bold px-1.5 py-0.5 rounded-sm">{item.badge}</span>
+            {(item as any).badge ? (
+              <span className="bg-accent text-bg font-mono text-[9px] font-bold px-1.5 py-0.5 rounded-sm">{(item as any).badge}</span>
             ) : null}
           </Link>
         ))}
@@ -63,54 +63,48 @@ function Sidebar({ user, onLogout }: { user: User; onLogout: () => void }) {
   )
 }
 
-// ─── Create alert modal ──────────────────────────────────────────
+// ─── Create alert modal ───────────────────────────────────────────
 function CreateAlertModal({
-  user,
-  assets,
-  onClose,
-  onCreated,
+  user, assets, onClose, onCreated,
 }: {
-  user: User
-  assets: Asset[]
-  onClose: () => void
-  onCreated: (alert: Alert) => void
+  user: User; assets: Asset[]; onClose: () => void; onCreated: (alert: Alert) => void
 }) {
   const { createAlert } = useAlertsStore()
-  const watchedAssets = assets.filter(a => a.isWatched)
-  const allAssets = assets.filter(a => a.price !== null)
+  const availableAssets = assets.filter(a => a.price !== null)
+  const watchedAssets = availableAssets.filter(a => a.isWatched)
 
-  const [form, setForm] = useState<{
-    assetId: string
-    condition: AlertCondition
-    targetValue: string
-    channel: 'email'
-    contactValue: string
-    note: string
-  }>({
-    assetId: watchedAssets[0]?.id ?? allAssets[0]?.id ?? '',
-    condition: 'above',
-    targetValue: '',
-    channel: 'email',
-    contactValue: user.email,
-    note: '',
-  })
+  const defaultAssetId = watchedAssets[0]?.id ?? availableAssets[0]?.id ?? ''
+
+  const [assetId, setAssetId] = useState(defaultAssetId)
+  const [condition, setCondition] = useState<AlertCondition>('above')
+  const [targetValue, setTargetValue] = useState('')
+  const [contactValue, setContactValue] = useState(user.email)
+  const [note, setNote] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [submitted, setSubmitted] = useState(false)
 
-  const selectedAsset = allAssets.find(a => a.id === form.assetId)
-  const isPercentCondition = form.condition === 'change_up' || form.condition === 'change_down'
+  const selectedAsset = availableAssets.find(a => a.id === assetId)
+  const isPercent = condition === 'change_up' || condition === 'change_down'
+
+  // When asset changes, reset targetValue and pre-fill with current price suggestion
+  useEffect(() => {
+    setTargetValue('')
+    setErrors({})
+  }, [assetId, condition])
 
   function validate() {
     const e: Record<string, string> = {}
-    if (!form.assetId) e.assetId = 'Choisissez un actif'
-    const val = parseFloat(form.targetValue)
-    if (isNaN(val) || val <= 0) e.targetValue = 'Valeur invalide'
-    if (!form.contactValue) e.contactValue = 'Email requis'
-    else if (!/\S+@\S+\.\S+/.test(form.contactValue)) e.contactValue = 'Email invalide'
+    if (!assetId) e.assetId = 'Choisissez un actif'
+    const val = parseFloat(targetValue)
+    if (isNaN(val) || val <= 0) e.targetValue = isPercent ? 'Entrez un % valide' : 'Entrez un prix valide'
+    if (!contactValue) e.contactValue = 'Email requis'
+    else if (!/\S+@\S+\.\S+/.test(contactValue)) e.contactValue = 'Email invalide'
     return e
   }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    setSubmitted(true)
     const errs = validate()
     if (Object.keys(errs).length) { setErrors(errs); return }
     if (!selectedAsset) return
@@ -121,21 +115,38 @@ function CreateAlertModal({
       assetSymbol: selectedAsset.symbol,
       assetName: selectedAsset.name,
       assetType: selectedAsset.type,
-      condition: form.condition,
-      targetValue: parseFloat(form.targetValue),
-      channel: form.channel,
-      contactValue: form.contactValue.toLowerCase().trim(),
-      note: form.note,
+      condition,
+      targetValue: parseFloat(targetValue),
+      channel: 'email',
+      contactValue: contactValue.toLowerCase().trim(),
+      note,
+      currentPrice: selectedAsset.price,
     }
     const alert = createAlert(input)
     onCreated(alert)
   }
 
+  const suggestions = selectedAsset?.price && !isPercent
+    ? [
+        { mult: 0.90, label: '−10%' },
+        { mult: 0.95, label: '−5%' },
+        { mult: 1.05, label: '+5%' },
+        { mult: 1.10, label: '+10%' },
+      ]
+    : isPercent
+    ? [
+        { mult: 2, label: '2%' },
+        { mult: 5, label: '5%' },
+        { mult: 10, label: '10%' },
+        { mult: 20, label: '20%' },
+      ]
+    : []
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4" onClick={onClose}>
       <div className="absolute inset-0 bg-bg/80 backdrop-blur-sm" />
       <div
-        className="relative bg-surface border border-white/[0.07] w-full max-w-lg animate-slide-up max-h-[90vh] overflow-y-auto"
+        className="relative bg-surface border border-white/[0.07] w-full max-w-lg animate-slide-up max-h-[92vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
@@ -144,101 +155,135 @@ function CreateAlertModal({
             <div className="font-mono text-[10px] text-accent tracking-[0.15em] uppercase mb-0.5">Nouvelle alerte</div>
             <h2 className="font-display font-bold text-lg tracking-tight">Créer une alerte de prix</h2>
           </div>
-          <button onClick={onClose} className="font-mono text-[18px] text-muted hover:text-text px-2">×</button>
+          <button onClick={onClose} className="font-mono text-[18px] text-muted hover:text-text px-2 transition-colors">×</button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-5">
+
           {/* Asset selector */}
           <div>
             <label className="signal-label">Actif à surveiller</label>
-            <select
-              value={form.assetId}
-              onChange={e => setForm(f => ({ ...f, assetId: e.target.value }))}
-              className="signal-input"
-            >
-              {watchedAssets.length > 0 && (
-                <optgroup label="★ Mes actifs suivis">
-                  {watchedAssets.map(a => (
+            {availableAssets.length === 0 ? (
+              <div className="flex items-center gap-3 bg-surface2 border border-white/[0.07] px-4 py-3">
+                <div className="w-3 h-3 border border-accent border-t-transparent rounded-full animate-spin" />
+                <span className="font-mono text-[12px] text-muted">Chargement des actifs…</span>
+              </div>
+            ) : (
+              <select
+                value={assetId}
+                onChange={e => setAssetId(e.target.value)}
+                className="signal-input"
+              >
+                {watchedAssets.length > 0 && (
+                  <optgroup label="★ Mes actifs suivis">
+                    {watchedAssets.map(a => (
+                      <option key={a.id} value={a.id}>
+                        {a.symbol} — {a.name} · {formatPrice(a.price)}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+                <optgroup label="Tous les actifs">
+                  {availableAssets.filter(a => !a.isWatched).map(a => (
                     <option key={a.id} value={a.id}>
-                      {a.symbol} — {a.name} ({formatPrice(a.price, a.symbol)})
+                      {a.symbol} — {a.name} · {formatPrice(a.price)}
                     </option>
                   ))}
                 </optgroup>
-              )}
-              <optgroup label="Tous les actifs">
-                {allAssets.filter(a => !a.isWatched).map(a => (
-                  <option key={a.id} value={a.id}>
-                    {a.symbol} — {a.name} ({formatPrice(a.price, a.symbol)})
-                  </option>
-                ))}
-              </optgroup>
-            </select>
+              </select>
+            )}
             {errors.assetId && <p className="signal-error">{errors.assetId}</p>}
-            {selectedAsset && (
-              <p className="font-mono text-[11px] text-muted mt-1.5">
-                Prix actuel : <span className="text-accent">{formatPrice(selectedAsset.price, selectedAsset.symbol)}</span>
-              </p>
+            {selectedAsset?.price !== null && selectedAsset && (
+              <div className="flex items-center gap-2 mt-2">
+                <span className="font-mono text-[11px] text-muted">Prix actuel :</span>
+                <span className="font-mono text-[11px] text-accent font-bold">{formatPrice(selectedAsset.price)}</span>
+                {selectedAsset.change24h !== null && (
+                  <span className={`font-mono text-[10px] ${selectedAsset.change24h >= 0 ? 'text-accent' : 'text-warn'}`}>
+                    {selectedAsset.change24h >= 0 ? '▲' : '▼'} {Math.abs(selectedAsset.change24h).toFixed(2)}%
+                  </span>
+                )}
+              </div>
             )}
           </div>
 
           {/* Condition */}
           <div>
-            <label className="signal-label">Condition</label>
+            <label className="signal-label">Condition de déclenchement</label>
             <div className="grid grid-cols-2 gap-2">
-              {(['above', 'below', 'change_up', 'change_down'] as AlertCondition[]).map(c => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setForm(f => ({ ...f, condition: c }))}
-                  className={`flex items-center gap-2 px-4 py-3 border font-mono text-[12px] tracking-wide transition-all text-left ${
-                    form.condition === c
-                      ? c === 'above' || c === 'change_up'
-                        ? 'border-accent text-accent bg-accent/10'
-                        : 'border-warn text-warn bg-warn/10'
-                      : 'border-white/[0.07] text-muted hover:border-white/20'
-                  }`}
-                >
-                  <span>{conditionIcon(c)}</span>
-                  <span>{conditionLabel(c)}</span>
-                </button>
-              ))}
+              {(['above', 'below', 'change_up', 'change_down'] as AlertCondition[]).map(c => {
+                const isUp = c === 'above' || c === 'change_up'
+                const isActive = condition === c
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setCondition(c)}
+                    className={`flex items-center gap-2 px-4 py-3 border font-mono text-[12px] tracking-wide transition-all text-left ${
+                      isActive
+                        ? isUp
+                          ? 'border-accent text-accent bg-accent/10'
+                          : 'border-warn text-warn bg-warn/10'
+                        : 'border-white/[0.07] text-muted hover:border-white/20 hover:text-text'
+                    }`}
+                  >
+                    <span className="text-base">{conditionIcon(c)}</span>
+                    <span>{conditionLabel(c)}</span>
+                  </button>
+                )
+              })}
             </div>
           </div>
 
           {/* Target value */}
           <div>
             <label className="signal-label">
-              {isPercentCondition ? 'Variation (%)' : 'Prix cible (USD)'}
+              {isPercent ? 'Variation en %' : 'Prix cible (USD)'}
             </label>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 font-mono text-muted text-sm">
-                {isPercentCondition ? '%' : '$'}
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 font-mono text-muted text-sm select-none">
+                {isPercent ? '%' : '$'}
               </span>
               <input
                 type="number"
                 step="any"
                 min="0"
-                placeholder={isPercentCondition ? 'ex: 5' : selectedAsset ? `ex: ${(selectedAsset.price ?? 0 * 1.05).toFixed(2)}` : '0.00'}
-                value={form.targetValue}
-                onChange={e => setForm(f => ({ ...f, targetValue: e.target.value }))}
+                placeholder={
+                  isPercent
+                    ? 'ex : 5'
+                    : selectedAsset?.price
+                    ? (selectedAsset.price * 1.05).toFixed(selectedAsset.price < 1 ? 6 : 2)
+                    : '0.00'
+                }
+                value={targetValue}
+                onChange={e => {
+                  setTargetValue(e.target.value)
+                  if (submitted) setErrors(v => ({ ...v, targetValue: '' }))
+                }}
                 className={`signal-input pl-8 ${errors.targetValue ? 'border-warn/60' : ''}`}
+                autoFocus
               />
             </div>
             {errors.targetValue && <p className="signal-error">{errors.targetValue}</p>}
-            {/* Smart suggestion */}
-            {selectedAsset?.price && !isPercentCondition && (
-              <div className="flex gap-2 mt-2">
-                {[0.95, 1.05, 1.10].map(mult => {
-                  const val = (selectedAsset.price! * mult).toFixed(2)
-                  const label = mult < 1 ? `-${((1 - mult) * 100).toFixed(0)}%` : `+${((mult - 1) * 100).toFixed(0)}%`
+
+            {/* Quick suggestions */}
+            {suggestions.length > 0 && (
+              <div className="flex gap-2 mt-2 flex-wrap">
+                {suggestions.map(s => {
+                  const val = isPercent
+                    ? String(s.mult)
+                    : (selectedAsset!.price! * s.mult).toFixed(selectedAsset!.price! < 1 ? 6 : 2)
                   return (
                     <button
-                      key={mult}
+                      key={s.label}
                       type="button"
-                      onClick={() => setForm(f => ({ ...f, targetValue: val }))}
-                      className="font-mono text-[10px] border border-white/[0.07] px-2 py-1 text-muted hover:border-accent hover:text-accent transition-all"
+                      onClick={() => setTargetValue(val)}
+                      className={`font-mono text-[10px] border px-2.5 py-1 transition-all ${
+                        targetValue === val
+                          ? 'border-accent text-accent bg-accent/10'
+                          : 'border-white/[0.07] text-muted hover:border-accent/50 hover:text-accent'
+                      }`}
                     >
-                      {label} · ${val}
+                      {isPercent ? s.label : `${s.label} · $${val}`}
                     </button>
                   )
                 })}
@@ -246,26 +291,16 @@ function CreateAlertModal({
             )}
           </div>
 
-          {/* Channel — email only for MVP */}
-          <div>
-            <label className="signal-label">Canal de notification</label>
-            <div className="flex items-center gap-3 bg-surface2 border border-white/[0.07] px-4 py-3">
-              <span className="text-accent text-lg">✉</span>
-              <div>
-                <div className="font-display font-semibold text-sm">Email</div>
-                <div className="font-mono text-[11px] text-muted">Notification instantanée par email</div>
-              </div>
-              <div className="ml-auto w-2 h-2 rounded-full bg-accent" />
-            </div>
-          </div>
-
           {/* Email */}
           <div>
-            <label className="signal-label">Adresse email</label>
+            <label className="signal-label">Adresse email de notification</label>
             <input
               type="email"
-              value={form.contactValue}
-              onChange={e => setForm(f => ({ ...f, contactValue: e.target.value }))}
+              value={contactValue}
+              onChange={e => {
+                setContactValue(e.target.value)
+                if (submitted) setErrors(v => ({ ...v, contactValue: '' }))
+              }}
               className={`signal-input ${errors.contactValue ? 'border-warn/60' : ''}`}
               placeholder="vous@example.com"
             />
@@ -274,22 +309,38 @@ function CreateAlertModal({
 
           {/* Note */}
           <div>
-            <label className="signal-label">Note (optionnel)</label>
+            <label className="signal-label">Note personnelle (optionnel)</label>
             <input
               type="text"
-              value={form.note}
-              onChange={e => setForm(f => ({ ...f, note: e.target.value }))}
+              value={note}
+              onChange={e => setNote(e.target.value)}
               className="signal-input"
-              placeholder="ex: Seuil de prise de profit"
+              placeholder="ex : Seuil de prise de profit"
               maxLength={80}
             />
           </div>
 
-          <div className="flex gap-3 pt-2">
+          {/* Preview */}
+          {selectedAsset && targetValue && !isNaN(parseFloat(targetValue)) && (
+            <div className="bg-surface2 border border-white/[0.07] px-4 py-3 flex items-center gap-3">
+              <span className={`text-lg ${condition === 'above' || condition === 'change_up' ? 'text-accent' : 'text-warn'}`}>
+                {conditionIcon(condition)}
+              </span>
+              <span className="font-mono text-[12px] text-muted">
+                Alerte quand <span className="text-text font-bold">{selectedAsset.symbol}</span>{' '}
+                {conditionLabel(condition).toLowerCase()}{' '}
+                <span className="text-accent font-bold">
+                  {isPercent ? `${targetValue}%` : `$${targetValue}`}
+                </span>
+              </span>
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-1">
             <button type="button" onClick={onClose} className="signal-btn-ghost flex-none w-auto px-6">
               Annuler
             </button>
-            <button type="submit" className="signal-btn-primary flex-1">
+            <button type="submit" className="signal-btn-primary flex-1" disabled={availableAssets.length === 0}>
               Créer l'alerte →
             </button>
           </div>
@@ -299,51 +350,44 @@ function CreateAlertModal({
   )
 }
 
-// ─── Alert card ──────────────────────────────────────────────────
+// ─── Alert card ───────────────────────────────────────────────────
 function AlertCard({
-  alert,
-  currentPrice,
-  onDelete,
-  onPause,
-  onResume,
+  alert, currentPrice, onDelete, onPause, onResume,
 }: {
-  alert: Alert
-  currentPrice: number | null
-  onDelete: () => void
-  onPause: () => void
-  onResume: () => void
+  alert: Alert; currentPrice: number | null; onDelete: () => void; onPause: () => void; onResume: () => void
 }) {
   const up = alert.condition === 'above' || alert.condition === 'change_up'
   const triggered = currentPrice !== null && isTriggered(alert, currentPrice)
 
-  const distancePercent = currentPrice && alert.condition !== 'change_up' && alert.condition !== 'change_down'
+  const distancePct = currentPrice && !alert.condition.startsWith('change')
     ? ((alert.targetValue - currentPrice) / currentPrice) * 100
+    : null
+
+  const progressPct = distancePct !== null
+    ? Math.min(100, Math.max(0, 100 - Math.abs(distancePct) * 4))
     : null
 
   return (
     <div className={`bg-surface border transition-all ${
-      alert.status === 'triggered'
-        ? 'border-accent/40 bg-accent/5'
-        : alert.status === 'paused'
-        ? 'border-white/[0.04] opacity-50'
-        : triggered
-        ? 'border-accent/30'
-        : 'border-white/[0.07]'
+      alert.status === 'triggered' ? 'border-accent/40 bg-accent/5'
+      : alert.status === 'paused'   ? 'border-white/[0.04] opacity-60'
+      : triggered                    ? 'border-warn/40 bg-warn/5'
+      : 'border-white/[0.07] hover:border-white/[0.12]'
     }`}>
       {/* Top bar */}
       <div className="flex items-center justify-between px-5 py-3 border-b border-white/[0.07]">
         <div className="flex items-center gap-2">
-          {/* Status dot */}
           <div className={`w-1.5 h-1.5 rounded-full ${
-            alert.status === 'triggered' ? 'bg-accent animate-pulse' :
-            alert.status === 'paused' ? 'bg-muted' : 'bg-accent/60'
+            alert.status === 'triggered' ? 'bg-accent animate-pulse'
+            : alert.status === 'paused' ? 'bg-muted'
+            : triggered ? 'bg-warn animate-pulse'
+            : 'bg-accent/60'
           }`} />
           <span className="font-display font-bold text-sm tracking-tight">{alert.assetSymbol}</span>
           <span className="font-mono text-[11px] text-muted">{alert.assetName}</span>
-          {alert.assetType === 'crypto'
-            ? <span className="font-mono text-[9px] text-muted/60 border border-muted/20 px-1.5 py-0.5">CRYPTO</span>
-            : <span className="font-mono text-[9px] text-muted/60 border border-muted/20 px-1.5 py-0.5">ACTION</span>
-          }
+          <span className="font-mono text-[9px] text-muted/60 border border-muted/20 px-1.5 py-0.5">
+            {alert.assetType === 'crypto' ? 'CRYPTO' : 'ACTION'}
+          </span>
         </div>
         <div className="flex items-center gap-1">
           {alert.status === 'active' && (
@@ -364,7 +408,6 @@ function AlertCard({
 
       {/* Body */}
       <div className="px-5 py-4 flex items-center justify-between gap-4">
-        {/* Condition */}
         <div className="flex-1">
           <div className={`flex items-center gap-2 font-display font-bold text-base ${up ? 'text-accent' : 'text-warn'}`}>
             <span>{conditionIcon(alert.condition)}</span>
@@ -373,22 +416,22 @@ function AlertCard({
               {alert.condition.startsWith('change') ? `${alert.targetValue}%` : formatPrice(alert.targetValue)}
             </span>
           </div>
-          {alert.note && (
-            <div className="font-mono text-[11px] text-muted mt-1">{alert.note}</div>
-          )}
+          {alert.note && <div className="font-mono text-[11px] text-muted mt-1 italic">"{alert.note}"</div>}
           <div className="flex items-center gap-3 mt-2">
             <span className="font-mono text-[10px] text-muted">✉ {alert.contactValue}</span>
+            <span className="font-mono text-[10px] text-muted/40">
+              {new Date(alert.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
+            </span>
           </div>
         </div>
 
-        {/* Current price + distance */}
         <div className="text-right flex-shrink-0">
           {currentPrice !== null ? (
             <>
               <div className="font-mono text-sm text-text">{formatPrice(currentPrice)}</div>
-              {distancePercent !== null && (
-                <div className={`font-mono text-[11px] mt-0.5 ${Math.abs(distancePercent) < 3 ? 'text-warn' : 'text-muted'}`}>
-                  {distancePercent >= 0 ? '+' : ''}{distancePercent.toFixed(2)}% à la cible
+              {distancePct !== null && (
+                <div className={`font-mono text-[11px] mt-0.5 ${Math.abs(distancePct) < 3 ? 'text-warn' : 'text-muted'}`}>
+                  {distancePct >= 0 ? '+' : ''}{distancePct.toFixed(2)}% de la cible
                 </div>
               )}
             </>
@@ -398,21 +441,24 @@ function AlertCard({
           {alert.status === 'triggered' && (
             <div className="font-mono text-[10px] text-accent mt-1">✓ Déclenchée</div>
           )}
+          {triggered && alert.status === 'active' && (
+            <div className="font-mono text-[10px] text-warn mt-1 animate-pulse">⚡ Seuil atteint</div>
+          )}
         </div>
       </div>
 
-      {/* Progress bar to target (price alerts only) */}
-      {currentPrice && distancePercent !== null && alert.status === 'active' && (
+      {/* Progress bar */}
+      {progressPct !== null && alert.status === 'active' && (
         <div className="px-5 pb-4">
-          <div className="h-px bg-white/[0.05] relative overflow-hidden">
+          <div className="h-px bg-white/[0.05] relative overflow-hidden rounded-full">
             <div
-              className={`absolute h-full transition-all ${up ? 'bg-accent' : 'bg-warn'} left-0`}
-              style={{ width: `${Math.min(100, Math.max(0, 100 - Math.abs(distancePercent) * 5))}%` }}
+              className={`absolute h-full left-0 transition-all duration-500 ${up ? 'bg-accent' : 'bg-warn'}`}
+              style={{ width: `${progressPct}%` }}
             />
           </div>
           <div className="flex justify-between mt-1">
-            <span className="font-mono text-[10px] text-muted">Prix actuel</span>
-            <span className="font-mono text-[10px] text-muted">Cible</span>
+            <span className="font-mono text-[9px] text-muted">Prix actuel</span>
+            <span className="font-mono text-[9px] text-muted">Cible</span>
           </div>
         </div>
       )}
@@ -420,7 +466,7 @@ function AlertCard({
   )
 }
 
-// ─── Main page ────────────────────────────────────────────────────
+// ─── Main ─────────────────────────────────────────────────────────
 const PLAN_MAX: Record<string, number> = { free: 3, pro: Infinity, expert: Infinity }
 
 export default function AlertsPage() {
@@ -431,9 +477,8 @@ export default function AlertsPage() {
   const refreshRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const { assets, fetchPrices, getPriceFor } = useAssetsStore()
-  const { alerts, init: initAlerts, deleteAlert, pauseAlert, resumeAlert } = useAlertsStore()
+  const { alerts, init: initAlerts, deleteAlert, pauseAlert, resumeAlert, triggerAlert } = useAlertsStore()
 
-  // Check alerts client-side every 60s and send via API if triggered
   const checkAlerts = useCallback(async () => {
     const activeAlerts = alerts.filter(a => a.status === 'active')
     for (const alert of activeAlerts) {
@@ -441,19 +486,18 @@ export default function AlertsPage() {
       if (price === null) continue
       if (isTriggered(alert, price)) {
         try {
+          triggerAlert(alert.id)
           await fetch('/api/notify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ alert, currentPrice: price }),
           })
-          // Mark as triggered in store
-          useAlertsStore.getState().pauseAlert(alert.id)  // pause to avoid re-trigger spam
         } catch (err) {
           console.error('[checkAlerts] notify failed:', err)
         }
       }
     }
-  }, [alerts, getPriceFor])
+  }, [alerts, getPriceFor, triggerAlert])
 
   useEffect(() => {
     const session = getSession()
@@ -468,7 +512,6 @@ export default function AlertsPage() {
     return () => { if (refreshRef.current) clearInterval(refreshRef.current) }
   }, [router, initAlerts, fetchPrices])
 
-  // Re-check alerts whenever assets update
   useEffect(() => { checkAlerts() }, [assets])
 
   function handleLogout() { logout(); router.push('/login') }
@@ -508,7 +551,6 @@ export default function AlertsPage() {
       )}
 
       <main className="ml-64 relative z-10">
-        {/* Topbar */}
         <div className="flex items-center justify-between px-10 py-5 border-b border-white/[0.07] bg-surface/50 backdrop-blur-sm sticky top-0 z-10">
           <div>
             <div className="font-mono text-[11px] text-muted tracking-[0.15em] uppercase mb-0.5">Surveillance</div>
@@ -524,9 +566,7 @@ export default function AlertsPage() {
           <button
             onClick={() => canCreate ? setShowCreate(true) : showToast('Limite atteinte — passez à Pro')}
             className={`font-display font-bold text-[13px] tracking-[0.1em] uppercase px-5 py-2.5 transition-all clip-btn ${
-              canCreate
-                ? 'text-bg bg-accent hover:bg-[#00ffc2]'
-                : 'text-muted border border-white/[0.07] cursor-not-allowed'
+              canCreate ? 'text-bg bg-accent hover:bg-[#00ffc2]' : 'text-muted border border-white/[0.07] cursor-not-allowed'
             }`}
           >
             + Nouvelle alerte
@@ -534,17 +574,16 @@ export default function AlertsPage() {
         </div>
 
         <div className="p-10">
-          {/* Plan quota */}
           {user.plan === 'free' && (
             <div className="mb-6 flex items-center justify-between bg-surface border border-white/[0.07] px-5 py-4">
               <div className="flex items-center gap-4">
                 <div>
-                  <div className="font-mono text-[10px] text-muted tracking-widest uppercase mb-1">Quota alertes</div>
-                  <div className="w-40 h-1 bg-white/[0.07]">
-                    <div className="h-full bg-accent transition-all" style={{ width: `${Math.min((activeAlerts.length / 3) * 100, 100)}%` }} />
+                  <div className="font-mono text-[10px] text-muted tracking-widest uppercase mb-1">Quota</div>
+                  <div className="w-40 h-1.5 bg-white/[0.07] rounded-full overflow-hidden">
+                    <div className="h-full bg-accent transition-all rounded-full" style={{ width: `${Math.min((activeAlerts.length / 3) * 100, 100)}%` }} />
                   </div>
                 </div>
-                <span className="font-mono text-sm text-text">{activeAlerts.length} / 3</span>
+                <span className="font-mono text-sm text-text">{activeAlerts.length} / 3 alertes</span>
               </div>
               <Link href="/pricing" className="font-mono text-[11px] text-accent hover:text-[#00ffc2] tracking-wider transition-colors">
                 Passer à Pro — illimité →
@@ -552,7 +591,6 @@ export default function AlertsPage() {
             </div>
           )}
 
-          {/* No assets loaded yet warning */}
           {assets.length === 0 && (
             <div className="mb-6 flex items-center gap-3 bg-surface border border-white/[0.07] px-4 py-3">
               <div className="w-3 h-3 border border-accent border-t-transparent rounded-full animate-spin flex-shrink-0" />
@@ -560,7 +598,6 @@ export default function AlertsPage() {
             </div>
           )}
 
-          {/* Empty state */}
           {userAlerts.length === 0 ? (
             <div className="border border-dashed border-white/[0.07] flex flex-col items-center justify-center py-24 gap-5">
               <div className="text-5xl opacity-20">🔔</div>
@@ -570,21 +607,12 @@ export default function AlertsPage() {
                   Créez votre première alerte pour être notifié dès qu'un actif atteint votre cible.
                 </p>
               </div>
-              <button
-                onClick={() => setShowCreate(true)}
-                className="signal-btn-primary w-auto px-8 mt-2"
-              >
+              <button onClick={() => setShowCreate(true)} className="signal-btn-primary w-auto px-8 mt-2">
                 + Créer une alerte
               </button>
             </div>
           ) : (
             <div className="flex flex-col gap-3">
-              {/* Triggered first */}
-              {userAlerts.filter(a => a.status === 'triggered').length > 0 && (
-                <div className="font-mono text-[10px] text-accent tracking-[0.15em] uppercase mb-1">
-                  ✓ Déclenchées
-                </div>
-              )}
               {userAlerts
                 .sort((a, b) => {
                   const order = { triggered: 0, active: 1, paused: 2 }
@@ -595,24 +623,14 @@ export default function AlertsPage() {
                     key={alert.id}
                     alert={alert}
                     currentPrice={getPriceFor(alert.assetId)}
-                    onDelete={() => {
-                      deleteAlert(alert.id)
-                      showToast('Alerte supprimée')
-                    }}
-                    onPause={() => {
-                      pauseAlert(alert.id)
-                      showToast('Alerte mise en pause')
-                    }}
-                    onResume={() => {
-                      resumeAlert(alert.id)
-                      showToast('Alerte relancée')
-                    }}
+                    onDelete={() => { deleteAlert(alert.id); showToast('Alerte supprimée') }}
+                    onPause={() => { pauseAlert(alert.id); showToast('Alerte mise en pause') }}
+                    onResume={() => { resumeAlert(alert.id); showToast('Alerte relancée') }}
                   />
                 ))}
             </div>
           )}
 
-          {/* Footer hint */}
           {userAlerts.length > 0 && (
             <p className="font-mono text-[11px] text-muted/50 mt-6 text-center">
               Vérification automatique toutes les 60 secondes · Notifications via Resend
@@ -621,13 +639,12 @@ export default function AlertsPage() {
         </div>
       </main>
 
-      {/* Create modal */}
       {showCreate && (
         <CreateAlertModal
           user={user}
           assets={assets}
           onClose={() => setShowCreate(false)}
-          onCreated={(alert) => {
+          onCreated={alert => {
             setShowCreate(false)
             showToast(`Alerte ${alert.assetSymbol} créée !`)
           }}
@@ -635,78 +652,20 @@ export default function AlertsPage() {
       )}
 
       <style jsx global>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.4; transform: scale(0.7); }
-        }
-        @keyframes slide-up {
-          from { opacity: 0; transform: translateY(12px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        .animate-slide-up { animation: slide-up 0.2s ease-out; }
-        .signal-label {
-          display: block;
-          font-family: 'IBM Plex Mono', monospace;
-          font-size: 11px;
-          letter-spacing: 0.12em;
-          text-transform: uppercase;
-          color: #5a6a7a;
-          margin-bottom: 8px;
-        }
-        .signal-input {
-          width: 100%;
-          background: #0e1419;
-          border: 1px solid rgba(255,255,255,0.07);
-          color: #e8edf2;
-          font-family: 'IBM Plex Mono', monospace;
-          font-size: 14px;
-          padding: 12px 16px;
-          outline: none;
-          transition: border-color 0.2s;
-        }
-        .signal-input:focus { border-color: #00e5a0; }
-        .signal-error {
-          font-family: 'IBM Plex Mono', monospace;
-          font-size: 11px;
-          color: #ff6b35;
-          margin-top: 6px;
-        }
-        .signal-btn-primary {
-          display: block;
-          width: 100%;
-          background: #00e5a0;
-          color: #080c10;
-          font-family: inherit;
-          font-weight: 700;
-          font-size: 12px;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          padding: 14px 28px;
-          border: none;
-          cursor: pointer;
-          transition: background 0.2s;
-          clip-path: polygon(10px 0%, 100% 0%, calc(100% - 10px) 100%, 0% 100%);
-        }
-        .signal-btn-primary:hover { background: #00ffc2; }
-        .signal-btn-ghost {
-          display: block;
-          width: 100%;
-          background: transparent;
-          border: 1px solid rgba(255,255,255,0.07);
-          color: #5a6a7a;
-          font-family: inherit;
-          font-weight: 600;
-          font-size: 12px;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          padding: 14px 28px;
-          cursor: pointer;
-          transition: all 0.2s;
-          clip-path: polygon(10px 0%, 100% 0%, calc(100% - 10px) 100%, 0% 100%);
-        }
-        .signal-btn-ghost:hover { border-color: #00e5a0; color: #00e5a0; }
-        select.signal-input option { background: #0e1419; }
-        .clip-btn { clip-path: polygon(10px 0%, 100% 0%, calc(100% - 10px) 100%, 0% 100%); }
+        @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
+        @keyframes slide-up { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+        .animate-slide-up{animation:slide-up .2s ease-out}
+        .signal-label{display:block;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#5a6a7a;margin-bottom:8px}
+        .signal-input{width:100%;background:#0e1419;border:1px solid rgba(255,255,255,.07);color:#e8edf2;font-family:'IBM Plex Mono',monospace;font-size:14px;padding:12px 16px;outline:none;transition:border-color .2s}
+        .signal-input:focus{border-color:#00e5a0}
+        .signal-error{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#ff6b35;margin-top:6px}
+        .signal-btn-primary{display:block;width:100%;background:#00e5a0;color:#080c10;font-family:inherit;font-weight:700;font-size:12px;letter-spacing:.1em;text-transform:uppercase;padding:14px 28px;border:none;cursor:pointer;transition:background .2s;clip-path:polygon(10px 0%,100% 0%,calc(100% - 10px) 100%,0% 100%)}
+        .signal-btn-primary:hover{background:#00ffc2}
+        .signal-btn-primary:disabled{opacity:.4;cursor:not-allowed}
+        .signal-btn-ghost{display:block;width:100%;background:transparent;border:1px solid rgba(255,255,255,.07);color:#5a6a7a;font-family:inherit;font-weight:600;font-size:12px;letter-spacing:.1em;text-transform:uppercase;padding:14px 28px;cursor:pointer;transition:all .2s;clip-path:polygon(10px 0%,100% 0%,calc(100% - 10px) 100%,0% 100%)}
+        .signal-btn-ghost:hover{border-color:#00e5a0;color:#00e5a0}
+        select.signal-input option{background:#0e1419}
+        .clip-btn{clip-path:polygon(10px 0%,100% 0%,calc(100% - 10px) 100%,0% 100%)}
       `}</style>
     </div>
   )

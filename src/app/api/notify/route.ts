@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import type { Alert } from '@/lib/alerts'
 
+const resend = new Resend(process.env.RESEND_API_KEY)
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'alertes@signal.app'
 
 function formatPrice(price: number): string {
@@ -140,8 +141,7 @@ export async function POST(req: NextRequest) {
   if (!process.env.RESEND_API_KEY) {
     return NextResponse.json({ error: 'RESEND_API_KEY not configured' }, { status: 500 })
   }
-  const resend = new Resend(process.env.RESEND_API_KEY)
-  
+
   let body: { alert: Alert; currentPrice: number }
   try {
     body = await req.json()
