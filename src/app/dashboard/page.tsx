@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { getSession, logout } from '@/lib/auth'
 import type { User } from '@/lib/auth'
+import { useAssetsStore } from '@/lib/assets'
 
 const PLAN_COLORS = {
   free: 'text-muted border-muted/30',
@@ -18,6 +19,8 @@ function DashboardContent() {
   const searchParams = useSearchParams()
   const [user, setUser] = useState<User | null>(null)
   const [showWelcome, setShowWelcome] = useState(false)
+  const { assets, init: initAssets } = useAssetsStore()
+  const watchedCount = assets.filter(a => a.isWatched).length
 
   useEffect(() => {
     const session = getSession()
@@ -26,11 +29,12 @@ function DashboardContent() {
       return
     }
     setUser(session)
+    initAssets()
     if (searchParams.get('welcome') === '1') {
       setShowWelcome(true)
       setTimeout(() => setShowWelcome(false), 5000)
     }
-  }, [router, searchParams])
+  }, [router, searchParams, initAssets])
 
   function handleLogout() {
     logout()
@@ -98,7 +102,7 @@ function DashboardContent() {
           {[
             { icon: '📊', label: 'Dashboard', href: '/dashboard', active: true },
             { icon: '🔔', label: 'Mes alertes', href: '/dashboard/alerts', active: false, soon: false },
-            { icon: '📈', label: 'Mes actifs', href: '/dashboard/assets', active: false, soon: false },
+            { icon: '📈', label: 'Mes actifs',  href: '/dashboard/assets', active: false, soon: false },
             { icon: '⚙️', label: 'Paramètres', href: '/dashboard/settings', active: false, soon: false },
           ].map((item) => (
             <Link
@@ -178,7 +182,7 @@ function DashboardContent() {
           <div className="grid grid-cols-4 gap-px bg-white/[0.07] mb-px">
             {[
               { label: 'Alertes actives', value: alertsUsed, unit: planMax === Infinity ? '∞' : `/ ${planMax}`, color: 'text-accent' },
-              { label: 'Actifs surveillés', value: 0, unit: 'actifs', color: 'text-accent2' },
+              { label: 'Actifs surveillés', value: watchedCount, unit: 'actifs', color: 'text-accent2' },
               { label: 'Signaux ce mois', value: 0, unit: 'signaux', color: 'text-text' },
               { label: 'Précision signaux', value: '—', unit: '', color: 'text-muted' },
             ].map((s) => (
