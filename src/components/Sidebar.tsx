@@ -61,9 +61,9 @@ export default function Sidebar({ user, activeNav, onLogout, activeAlertsCount =
               }`}>
               <span className={`font-mono text-[15px] leading-none ${isActive ? 'text-amber-500' : ''}`}>{item.icon}</span>
               <span className="flex-1 tracking-wide">{item.label}</span>
-              {item.badge ? (
+              {(item as any).badge ? (
                 <span className="bg-amber-500 text-black font-mono text-[9px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
-                  {item.badge}
+                  {(item as any).badge}
                 </span>
               ) : null}
             </Link>
