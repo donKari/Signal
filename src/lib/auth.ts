@@ -10,8 +10,8 @@ export interface User {
   alertsCount: number
 }
 
-const USERS_KEY = 'signal_users'
-const SESSION_KEY = 'signal_session'
+const USERS_KEY = 'pulse_users'
+const SESSION_KEY = 'pulse_session'
 
 // ─── User Storage ────────────────────────────────────────────────
 function getUsers(): Record<string, User & { passwordHash: string }> {

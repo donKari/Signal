@@ -1,90 +1,107 @@
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@300;400;500&family=Instrument+Serif:ital@0;1&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Geist+Mono:wght@300;400;500;600&family=Bricolage+Grotesque:opsz,wght@12..96,400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --bg: #080c10;
-  --surface: #0e1419;
-  --surface2: #141c24;
-  --border: rgba(255, 255, 255, 0.07);
-  --accent: #00e5a0;
-  --accent2: #00aaff;
-  --warn: #ff6b35;
-  --text: #e8edf2;
-  --muted: #5a6a7a;
+  --bg: #06080b;
+  --surface: #0b0f14;
+  --surface2: #111722;
+  --surface3: #1a2130;
+  --border: rgba(255, 255, 255, 0.06);
+  --border2: rgba(255, 255, 255, 0.10);
+  --accent: #f59e0b;
+  --accent2: #3b82f6;
+  --accent3: #10b981;
+  --warn: #ef4444;
+  --warn2: #f97316;
+  --text: #f1f5f9;
+  --text2: #94a3b8;
+  --muted: #475569;
+  --up: #10b981;
+  --down: #ef4444;
 }
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
-html,
-body {
+html, body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'Syne', sans-serif;
+  font-family: 'Bricolage Grotesque', sans-serif;
   overflow-x: hidden;
 }
 
-/* Noise overlay */
+/* Subtle scanline effect */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.03) 2px,
+    rgba(0, 0, 0, 0.03) 4px
+  );
   pointer-events: none;
-  z-index: 0;
-  opacity: 0.35;
+  z-index: 9999;
 }
 
-/* Clip-path button utility */
-.clip-btn {
-  clip-path: polygon(10px 0%, 100% 0%, calc(100% - 10px) 100%, 0% 100%);
+/* Noise grain */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.4;
 }
 
 /* Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-}
-::-webkit-scrollbar-track {
-  background: var(--bg);
-}
-::-webkit-scrollbar-thumb {
-  background: var(--surface2);
-  border-radius: 3px;
-}
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--muted); }
 
-/* Focus ring */
+/* Focus */
 *:focus-visible {
   outline: 1px solid var(--accent);
   outline-offset: 2px;
 }
 
 @layer components {
-  .signal-input {
-    @apply w-full bg-surface border border-white/[0.07] text-text font-mono text-sm px-4 py-3
-           placeholder-muted focus:outline-none focus:border-accent transition-colors duration-200;
+  .pulse-input {
+    @apply w-full bg-surface2 border border-white/[0.07] text-text font-mono text-sm px-4 py-3
+           placeholder-muted focus:outline-none focus:border-amber-500/50 transition-all duration-200;
+    font-family: 'Geist Mono', monospace;
   }
 
-  .signal-btn-primary {
-    @apply w-full bg-accent text-bg font-display font-bold text-sm tracking-widest uppercase
-           py-4 transition-all duration-200 hover:bg-[#00ffc2] hover:-translate-y-[1px]
-           hover:shadow-[0_16px_32px_rgba(0,229,160,0.2)] clip-btn;
+  .pulse-btn-primary {
+    @apply w-full bg-amber-500 text-black font-bold text-sm tracking-widest uppercase
+           py-4 transition-all duration-200 hover:bg-amber-400 hover:-translate-y-px
+           hover:shadow-[0_20px_40px_rgba(245,158,11,0.25)];
+    font-family: 'Bricolage Grotesque', sans-serif;
   }
 
-  .signal-btn-ghost {
-    @apply w-full border border-white/[0.07] text-muted font-display font-semibold text-sm
+  .pulse-btn-ghost {
+    @apply w-full border border-white/[0.08] text-text2 font-semibold text-sm
            tracking-widest uppercase py-4 transition-all duration-200
-           hover:border-accent hover:text-accent clip-btn;
+           hover:border-amber-500/50 hover:text-amber-400;
+    font-family: 'Bricolage Grotesque', sans-serif;
   }
 
-  .signal-label {
-    @apply block font-mono text-[11px] tracking-[0.15em] uppercase text-muted mb-2;
+  .pulse-label {
+    @apply block font-mono text-[10px] tracking-[0.18em] uppercase text-muted mb-2;
+    font-family: 'Geist Mono', monospace;
   }
 
-  .signal-error {
-    @apply font-mono text-[12px] text-warn mt-1;
+  .pulse-error {
+    @apply font-mono text-[11px] text-red-400 mt-1.5;
+    font-family: 'Geist Mono', monospace;
   }
+
+  .up { color: var(--up); }
+  .down { color: var(--down); }
 }

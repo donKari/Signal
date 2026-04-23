@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import type { Alert } from '@/lib/alerts'
 
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'alertes@signal.app'
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'alertes@pulse.finance'
 
 function formatPrice(price: number): string {
   if (price < 1)    return `$${price.toFixed(4)}`
@@ -17,7 +17,7 @@ function formatPrice(price: number): string {
 
 function buildEmailHtml(alert: Alert, currentPrice: number): string {
   const isUp = alert.condition === 'above' || alert.condition === 'change_up'
-  const accentColor = isUp ? '#00e5a0' : '#ff6b35'
+  const accentColor = isUp ? '#10b981' : '#ef4444'
   const conditionText = {
     above:       `est passé au-dessus de ${formatPrice(alert.targetValue)}`,
     below:       `est passé en dessous de ${formatPrice(alert.targetValue)}`,
@@ -30,7 +30,7 @@ function buildEmailHtml(alert: Alert, currentPrice: number): string {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Alerte Signal — ${alert.assetSymbol}</title>
+  <title>Alerte Pulse — ${alert.assetSymbol}</title>
 </head>
 <body style="margin:0;padding:0;background:#080c10;font-family:'Courier New',monospace;color:#e8edf2;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#080c10;min-height:100vh;">

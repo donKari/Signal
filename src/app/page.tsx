@@ -16,7 +16,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-bg flex items-center justify-center">
-      <div className="w-6 h-6 border border-accent border-t-transparent rounded-full animate-spin" />
+      <div className="w-6 h-6 border border-amber-500 border-t-transparent rounded-full animate-spin" />
     </div>
   )
 }

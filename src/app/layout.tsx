@@ -2,15 +2,11 @@ import type { Metadata } from 'next'
 import '../styles/globals.css'
 
 export const metadata: Metadata = {
-  title: 'Signal — Alertes Marchés Intelligentes',
-  description: 'Recevez des alertes personnalisées sur les marchés financiers en temps réel.',
+  title: 'Pulse — Alertes Marchés Intelligentes',
+  description: 'Surveillez vos marchés 24/7. Alertes de prix en temps réel sur cryptos et actions.',
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr">
       <body>{children}</body>

@@ -38,7 +38,7 @@ const CATEGORY_MAP: Record<string, AssetCategory> = {
 }
 
 // ─── Watched persistence ────────────────────────────────────────
-const WATCHED_KEY = 'signal_watched_assets'
+const WATCHED_KEY = 'pulse_watched_assets'
 
 function loadWatched(): string[] {
   if (typeof window === 'undefined') return []

@@ -7,51 +7,33 @@ import { register, isAuthenticated } from '@/lib/auth'
 
 const PLANS = [
   {
-    id: 'free',
-    name: 'Free',
-    price: '0€',
-    desc: '3 alertes · Email uniquement',
-    color: 'border-white/[0.07]',
-    activeColor: 'border-muted',
+    id: 'free', name: 'Free', price: '0€',
+    desc: '3 alertes · Email',
+    border: 'border-white/[0.07]', active: 'border-white/20 bg-white/[0.02]',
   },
   {
-    id: 'pro',
-    name: 'Pro',
-    price: '29€/mois',
+    id: 'pro', name: 'Pro', price: '9€/mois',
     desc: 'Alertes illimitées · Multi-canaux',
-    color: 'border-white/[0.07]',
-    activeColor: 'border-accent',
     badge: 'Populaire',
+    border: 'border-white/[0.07]', active: 'border-amber-500/60 bg-amber-500/5',
   },
   {
-    id: 'expert',
-    name: 'Expert',
-    price: '49€/mois',
-    desc: 'Alertes IA · News · API',
-    color: 'border-white/[0.07]',
-    activeColor: 'border-accent2',
+    id: 'expert', name: 'Expert', price: '29€/mois',
+    desc: 'IA · News · API',
+    border: 'border-white/[0.07]', active: 'border-blue-500/60 bg-blue-500/5',
   },
 ]
 
 export default function RegisterPage() {
   const router = useRouter()
   const [step, setStep] = useState<1 | 2>(1)
-  const [form, setForm] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirm: '',
-    plan: 'free',
-    terms: false,
-  })
+  const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '', plan: 'free', terms: false })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [globalError, setGlobalError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [showPw, setShowPw] = useState(false)
 
-  useEffect(() => {
-    if (isAuthenticated()) router.replace('/dashboard')
-  }, [router])
+  useEffect(() => { if (isAuthenticated()) router.replace('/dashboard') }, [router])
 
   function validateStep1() {
     const e: Record<string, string> = {}
@@ -59,299 +41,147 @@ export default function RegisterPage() {
     if (!form.email) e.email = 'Email requis'
     else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = 'Email invalide'
     if (!form.password) e.password = 'Mot de passe requis'
-    else if (form.password.length < 8) e.password = 'Au moins 8 caractères'
+    else if (form.password.length < 8) e.password = 'Minimum 8 caractères'
     if (form.password !== form.confirm) e.confirm = 'Les mots de passe ne correspondent pas'
     return e
   }
 
-  function handleStep1(e: React.FormEvent) {
-    e.preventDefault()
-    const errs = validateStep1()
-    if (Object.keys(errs).length) { setErrors(errs); return }
-    setErrors({})
-    setStep(2)
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!form.terms) {
-      setErrors({ terms: 'Vous devez accepter les CGU' })
-      return
+    if (step === 1) {
+      const errs = validateStep1()
+      if (Object.keys(errs).length) { setErrors(errs); return }
+      setErrors({}); setStep(2); return
     }
-    setErrors({})
-    setGlobalError('')
-    setIsLoading(true)
-
+    if (!form.terms) { setErrors({ terms: 'Vous devez accepter les CGU' }); return }
+    setErrors({}); setGlobalError(''); setIsLoading(true)
     const result = await register(form.name, form.email, form.password)
     setIsLoading(false)
-
-    if (result.success) {
-      router.push('/dashboard?welcome=1')
-    } else {
-      setGlobalError(result.error || 'Erreur lors de la création du compte.')
-      setStep(1)
-    }
+    if (result.success) router.push('/dashboard?welcome=1')
+    else setGlobalError(result.error || 'Erreur lors de la création du compte.')
   }
-
-  // Password strength
-  const strength = (() => {
-    const p = form.password
-    if (!p) return 0
-    let s = 0
-    if (p.length >= 8) s++
-    if (/[A-Z]/.test(p)) s++
-    if (/[0-9]/.test(p)) s++
-    if (/[^A-Za-z0-9]/.test(p)) s++
-    return s
-  })()
-  const strengthLabel = ['', 'Faible', 'Moyen', 'Fort', 'Excellent'][strength]
-  const strengthColor = ['', 'text-warn', 'text-yellow-400', 'text-accent2', 'text-accent'][strength]
 
   return (
     <AuthLayout>
-      <div className="w-full max-w-md animate-slide-up">
-        {/* Step indicator */}
-        <div className="flex items-center gap-3 mb-10">
-          {[1, 2].map((s) => (
-            <div key={s} className="flex items-center gap-3">
-              <div
-                className={`w-8 h-8 flex items-center justify-center font-mono text-[12px] font-medium border transition-all ${
-                  step === s
-                    ? 'border-accent text-accent bg-accent/10'
-                    : step > s
-                    ? 'border-accent/40 text-accent/40 bg-accent/5'
-                    : 'border-white/[0.07] text-muted'
-                }`}
-              >
-                {step > s ? '✓' : s}
-              </div>
-              <span className={`font-mono text-[11px] tracking-wider uppercase ${step >= s ? 'text-muted' : 'text-muted/40'}`}>
-                {s === 1 ? 'Informations' : 'Votre plan'}
-              </span>
-              {s === 1 && <div className="w-8 h-px bg-white/[0.07]" />}
-            </div>
+      <div className="w-full max-w-lg animate-slide-up">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="font-mono text-[10px] tracking-[0.2em] uppercase text-amber-500 mb-3">
+            — Étape {step} sur 2
+          </div>
+          <h1 className="font-display font-bold text-4xl tracking-tight leading-none mb-2">
+            {step === 1 ? 'Créer un compte' : 'Choisir un plan'}
+          </h1>
+          <p className="font-mono text-sm text-muted">
+            {step === 1 ? 'Commencez à surveiller vos marchés en moins d\'une minute.' : 'Commencez gratuitement, upgradez quand vous voulez.'}
+          </p>
+        </div>
+
+        {/* Progress */}
+        <div className="flex gap-2 mb-8">
+          {[1, 2].map(s => (
+            <div key={s} className={`h-0.5 flex-1 rounded-full transition-all ${s <= step ? 'bg-amber-500' : 'bg-white/[0.08]'}`} />
           ))}
         </div>
 
-        {/* Header */}
-        <div className="mb-8">
-          <div className="font-mono text-[11px] tracking-[0.2em] uppercase text-accent mb-4">
-            — Inscription
-          </div>
-          <h1 className="font-display font-extrabold text-4xl tracking-tight uppercase leading-none mb-3">
-            {step === 1 ? (
-              <>Créer votre<br /><span className="font-serif italic font-normal normal-case text-accent">compte.</span></>
-            ) : (
-              <>Choisissez<br /><span className="font-serif italic font-normal normal-case text-accent">votre plan.</span></>
-            )}
-          </h1>
-        </div>
-
-        {/* Global error */}
         {globalError && (
-          <div className="mb-6 flex items-center gap-3 bg-warn/10 border border-warn/30 px-4 py-3">
-            <span className="text-warn text-lg">⚠</span>
-            <span className="font-mono text-[13px] text-warn">{globalError}</span>
+          <div className="mb-5 flex items-center gap-3 bg-down/10 border border-down/30 px-4 py-3 rounded-sm">
+            <span className="text-down text-sm">⚠</span>
+            <span className="font-mono text-[12px] text-down">{globalError}</span>
           </div>
         )}
 
-        {/* STEP 1 — Identity */}
-        {step === 1 && (
-          <form onSubmit={handleStep1} className="flex flex-col gap-5">
-            <div>
-              <label className="signal-label">Nom complet</label>
-              <input
-                type="text"
-                placeholder="Jean Dupont"
-                autoComplete="name"
-                className={`signal-input ${errors.name ? 'border-warn/60' : ''}`}
-                value={form.name}
-                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              />
-              {errors.name && <p className="signal-error">{errors.name}</p>}
-            </div>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          {step === 1 ? (
+            <>
+              <div>
+                <label className="pulse-label">Nom complet</label>
+                <input type="text" placeholder="Jean Dupont" className={`pulse-input ${errors.name ? 'border-down/50' : ''}`}
+                  value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+                {errors.name && <p className="pulse-error">{errors.name}</p>}
+              </div>
+              <div>
+                <label className="pulse-label">Email</label>
+                <input type="email" placeholder="vous@example.com" className={`pulse-input ${errors.email ? 'border-down/50' : ''}`}
+                  value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
+                {errors.email && <p className="pulse-error">{errors.email}</p>}
+              </div>
+              <div>
+                <label className="pulse-label">Mot de passe</label>
+                <div className="relative">
+                  <input type={showPw ? 'text' : 'password'} placeholder="Minimum 8 caractères"
+                    className={`pulse-input pr-12 ${errors.password ? 'border-down/50' : ''}`}
+                    value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} />
+                  <button type="button" onClick={() => setShowPw(v => !v)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 font-mono text-[10px] text-muted hover:text-text2">
+                    {showPw ? 'CACHER' : 'VOIR'}
+                  </button>
+                </div>
+                {errors.password && <p className="pulse-error">{errors.password}</p>}
+              </div>
+              <div>
+                <label className="pulse-label">Confirmer le mot de passe</label>
+                <input type="password" placeholder="••••••••"
+                  className={`pulse-input ${errors.confirm ? 'border-down/50' : ''}`}
+                  value={form.confirm} onChange={e => setForm(f => ({ ...f, confirm: e.target.value }))} />
+                {errors.confirm && <p className="pulse-error">{errors.confirm}</p>}
+              </div>
+              <button type="submit" className="pulse-btn-primary mt-2">Continuer →</button>
+            </>
+          ) : (
+            <>
+              <div className="grid grid-cols-3 gap-3">
+                {PLANS.map(plan => (
+                  <button key={plan.id} type="button" onClick={() => setForm(f => ({ ...f, plan: plan.id }))}
+                    className={`relative border p-4 text-left transition-all rounded-sm ${form.plan === plan.id ? plan.active : plan.border + ' hover:border-white/20'}`}>
+                    {plan.badge && (
+                      <span className="absolute -top-2 left-3 bg-amber-500 text-black font-mono text-[9px] font-bold px-2 py-0.5">
+                        {plan.badge}
+                      </span>
+                    )}
+                    <div className="font-display font-bold text-base mb-1">{plan.name}</div>
+                    <div className="font-mono text-[11px] text-amber-400 font-bold mb-1.5">{plan.price}</div>
+                    <div className="font-mono text-[10px] text-muted leading-relaxed">{plan.desc}</div>
+                  </button>
+                ))}
+              </div>
 
-            <div>
-              <label className="signal-label">Email</label>
-              <input
-                type="email"
-                placeholder="vous@example.com"
-                autoComplete="email"
-                className={`signal-input ${errors.email ? 'border-warn/60' : ''}`}
-                value={form.email}
-                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-              />
-              {errors.email && <p className="signal-error">{errors.email}</p>}
-            </div>
+              <label className={`flex items-start gap-3 cursor-pointer group bg-surface2 p-4 rounded-sm border ${errors.terms ? 'border-down/30' : 'border-white/[0.05]'}`}>
+                <input type="checkbox" className="mt-0.5 w-4 h-4 accent-amber-500 flex-shrink-0"
+                  checked={form.terms} onChange={e => setForm(f => ({ ...f, terms: e.target.checked }))} />
+                <span className="font-mono text-[11px] text-muted group-hover:text-text2 transition-colors leading-relaxed">
+                  J'accepte les{' '}
+                  <Link href="#" className="text-amber-400 hover:text-amber-300">Conditions Générales d'Utilisation</Link>
+                  {' '}et la{' '}
+                  <Link href="#" className="text-amber-400 hover:text-amber-300">Politique de Confidentialité</Link>
+                </span>
+              </label>
+              {errors.terms && <p className="pulse-error">{errors.terms}</p>}
 
-            <div>
-              <label className="signal-label">Mot de passe</label>
-              <div className="relative">
-                <input
-                  type={showPw ? 'text' : 'password'}
-                  placeholder="••••••••"
-                  autoComplete="new-password"
-                  className={`signal-input pr-12 ${errors.password ? 'border-warn/60' : ''}`}
-                  value={form.password}
-                  onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPw((v) => !v)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted hover:text-text font-mono text-[11px] tracking-wider"
-                >
-                  {showPw ? 'CACHER' : 'VOIR'}
+              <div className="flex gap-3">
+                <button type="button" onClick={() => setStep(1)} className="pulse-btn-ghost flex-none w-auto px-8">
+                  ← Retour
+                </button>
+                <button type="submit" disabled={isLoading} className="pulse-btn-primary flex-1">
+                  {isLoading ? (
+                    <span className="flex items-center justify-center gap-3">
+                      <span className="w-3.5 h-3.5 border-2 border-black/30 border-t-black rounded-full animate-spin inline-block" />
+                      Création…
+                    </span>
+                  ) : 'Créer mon compte →'}
                 </button>
               </div>
-              {form.password && (
-                <div className="flex items-center gap-2 mt-1.5">
-                  <div className="flex gap-1 flex-1">
-                    {[1, 2, 3, 4].map((i) => (
-                      <div
-                        key={i}
-                        className={`h-1 flex-1 transition-all ${
-                          i <= strength
-                            ? strength <= 1 ? 'bg-warn' : strength === 2 ? 'bg-yellow-400' : strength === 3 ? 'bg-accent2' : 'bg-accent'
-                            : 'bg-white/[0.07]'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                  <span className={`font-mono text-[11px] ${strengthColor}`}>{strengthLabel}</span>
-                </div>
-              )}
-              {errors.password && <p className="signal-error">{errors.password}</p>}
-            </div>
+            </>
+          )}
+        </form>
 
-            <div>
-              <label className="signal-label">Confirmer le mot de passe</label>
-              <input
-                type="password"
-                placeholder="••••••••"
-                autoComplete="new-password"
-                className={`signal-input ${errors.confirm ? 'border-warn/60' : ''}`}
-                value={form.confirm}
-                onChange={(e) => setForm((f) => ({ ...f, confirm: e.target.value }))}
-              />
-              {errors.confirm && <p className="signal-error">{errors.confirm}</p>}
-            </div>
-
-            <button type="submit" className="signal-btn-primary mt-2">
-              Continuer →
-            </button>
-          </form>
-        )}
-
-        {/* STEP 2 — Plan selection */}
-        {step === 2 && (
-          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-            <div className="flex flex-col gap-3">
-              {PLANS.map((plan) => (
-                <label
-                  key={plan.id}
-                  className={`flex items-center gap-4 p-4 border cursor-pointer transition-all ${
-                    form.plan === plan.id ? plan.activeColor : 'border-white/[0.07]'
-                  } ${form.plan === plan.id ? 'bg-surface2' : 'bg-surface hover:bg-surface2'}`}
-                >
-                  <input
-                    type="radio"
-                    name="plan"
-                    value={plan.id}
-                    checked={form.plan === plan.id}
-                    onChange={() => setForm((f) => ({ ...f, plan: plan.id }))}
-                    className="sr-only"
-                  />
-                  {/* Radio indicator */}
-                  <div
-                    className={`w-5 h-5 border flex items-center justify-center flex-shrink-0 transition-all ${
-                      form.plan === plan.id
-                        ? plan.id === 'pro' ? 'border-accent' : plan.id === 'expert' ? 'border-accent2' : 'border-muted'
-                        : 'border-white/[0.1]'
-                    }`}
-                  >
-                    {form.plan === plan.id && (
-                      <div
-                        className={`w-2.5 h-2.5 ${
-                          plan.id === 'pro' ? 'bg-accent' : plan.id === 'expert' ? 'bg-accent2' : 'bg-muted'
-                        }`}
-                      />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-display font-bold text-base uppercase tracking-tight">{plan.name}</span>
-                      {plan.badge && (
-                        <span className="font-mono text-[10px] tracking-wider bg-accent/10 text-accent px-2 py-0.5">
-                          {plan.badge}
-                        </span>
-                      )}
-                    </div>
-                    <div className="font-mono text-[12px] text-muted mt-0.5">{plan.desc}</div>
-                  </div>
-                  <span
-                    className={`font-display font-bold text-sm ${
-                      plan.id === 'pro' ? 'text-accent' : plan.id === 'expert' ? 'text-accent2' : 'text-muted'
-                    }`}
-                  >
-                    {plan.price}
-                  </span>
-                </label>
-              ))}
-            </div>
-
-            {/* Terms */}
-            <label className={`flex items-start gap-3 cursor-pointer group`}>
-              <div
-                onClick={() => setForm((f) => ({ ...f, terms: !f.terms }))}
-                className={`mt-0.5 w-5 h-5 border flex items-center justify-center flex-shrink-0 transition-all cursor-pointer ${
-                  form.terms ? 'border-accent bg-accent/10' : 'border-white/[0.1]'
-                }`}
-              >
-                {form.terms && <span className="text-accent text-[12px]">✓</span>}
-              </div>
-              <span className="font-mono text-[12px] text-muted leading-relaxed">
-                J'accepte les{' '}
-                <Link href="#" className="text-accent hover:underline">Conditions d'utilisation</Link>{' '}
-                et la{' '}
-                <Link href="#" className="text-accent hover:underline">Politique de confidentialité</Link>
-              </span>
-            </label>
-            {errors.terms && <p className="signal-error -mt-2">{errors.terms}</p>}
-
-            <div className="flex gap-3 mt-2">
-              <button
-                type="button"
-                onClick={() => setStep(1)}
-                className="signal-btn-ghost flex-none w-auto px-6"
-              >
-                ← Retour
-              </button>
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="signal-btn-primary flex-1 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isLoading ? (
-                  <>
-                    <div className="w-4 h-4 border border-bg border-t-transparent rounded-full animate-spin" />
-                    Création...
-                  </>
-                ) : (
-                  'Créer mon compte →'
-                )}
-              </button>
-            </div>
-          </form>
-        )}
-
-        {/* Login link */}
         {step === 1 && (
-          <p className="text-center font-mono text-[13px] text-muted mt-8">
-            Déjà un compte ?{' '}
-            <Link href="/login" className="text-accent hover:text-[#00ffc2] transition-colors">
-              Se connecter →
-            </Link>
-          </p>
+          <div className="mt-6 pt-5 border-t border-white/[0.06] text-center">
+            <p className="font-mono text-[12px] text-muted">
+              Déjà un compte ?{' '}
+              <Link href="/login" className="text-amber-400 hover:text-amber-300 transition-colors">Se connecter</Link>
+            </p>
+          </div>
         )}
       </div>
     </AuthLayout>

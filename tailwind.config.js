@@ -1,40 +1,45 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: [
-    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
-  ],
+  content: ['./src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
-      colors: {
-        bg: '#080c10',
-        surface: '#0e1419',
-        surface2: '#141c24',
-        border: 'rgba(255,255,255,0.07)',
-        accent: '#00e5a0',
-        accent2: '#00aaff',
-        warn: '#ff6b35',
-        muted: '#5a6a7a',
-        text: '#e8edf2',
-      },
       fontFamily: {
-        display: ['Syne', 'sans-serif'],
-        mono: ['"IBM Plex Mono"', 'monospace'],
-        serif: ['"Instrument Serif"', 'serif'],
+        display: ['Bricolage Grotesque', 'sans-serif'],
+        serif: ['DM Serif Display', 'serif'],
+        mono: ['Geist Mono', 'monospace'],
+      },
+      colors: {
+        bg: '#06080b',
+        surface: '#0b0f14',
+        surface2: '#111722',
+        surface3: '#1a2130',
+        accent: '#f59e0b',
+        accent2: '#3b82f6',
+        accent3: '#10b981',
+        warn: '#ef4444',
+        warn2: '#f97316',
+        text: '#f1f5f9',
+        text2: '#94a3b8',
+        muted: '#475569',
+        up: '#10b981',
+        down: '#ef4444',
       },
       animation: {
-        pulse: 'pulse 2s ease-in-out infinite',
-        'fade-in': 'fadeIn 0.4s ease forwards',
-        'slide-up': 'slideUp 0.5s ease forwards',
+        'pulse-dot': 'pulse-dot 2s ease-in-out infinite',
+        'fade-in': 'fade-in 0.3s ease-out',
+        'slide-up': 'slide-up 0.25s ease-out',
       },
       keyframes: {
-        fadeIn: {
+        'pulse-dot': {
+          '0%, 100%': { opacity: 1, transform: 'scale(1)' },
+          '50%': { opacity: 0.3, transform: 'scale(0.6)' },
+        },
+        'fade-in': {
           from: { opacity: 0 },
           to: { opacity: 1 },
         },
-        slideUp: {
-          from: { opacity: 0, transform: 'translateY(16px)' },
+        'slide-up': {
+          from: { opacity: 0, transform: 'translateY(10px)' },
           to: { opacity: 1, transform: 'translateY(0)' },
         },
       },

@@ -29,18 +29,11 @@ export default function LoginPage() {
     e.preventDefault()
     const errs = validate()
     if (Object.keys(errs).length) { setErrors(errs); return }
-    setErrors({})
-    setGlobalError('')
-    setIsLoading(true)
-
+    setErrors({}); setGlobalError(''); setIsLoading(true)
     const result = await login(form.email, form.password)
     setIsLoading(false)
-
-    if (result.success) {
-      router.push('/dashboard')
-    } else {
-      setGlobalError(result.error || 'Erreur de connexion.')
-    }
+    if (result.success) router.push('/dashboard')
+    else setGlobalError(result.error || 'Erreur de connexion.')
   }
 
   return (
@@ -48,114 +41,78 @@ export default function LoginPage() {
       <div className="w-full max-w-md animate-slide-up">
         {/* Header */}
         <div className="mb-10">
-          <div className="font-mono text-[11px] tracking-[0.2em] uppercase text-accent mb-4">
-            — Connexion
-          </div>
-          <h1 className="font-display font-extrabold text-4xl tracking-tight uppercase leading-none mb-3">
-            Bon retour<br />
-            <span className="font-serif italic font-normal normal-case text-accent">sur Signal.</span>
+          <div className="font-mono text-[10px] tracking-[0.2em] uppercase text-amber-500 mb-4">— Connexion</div>
+          <h1 className="font-display font-bold text-4xl tracking-tight leading-none mb-3">
+            Bon retour
+            <br />
+            <span className="font-serif italic font-normal text-amber-400">sur Pulse.</span>
           </h1>
           <p className="font-mono text-sm text-muted leading-relaxed">
-            Les marchés n'attendent pas.<br />Connectez-vous pour accéder à vos alertes.
+            Les marchés n'attendent pas.<br />Reconnectez-vous à vos alertes.
           </p>
         </div>
 
-        {/* Global error */}
         {globalError && (
-          <div className="mb-6 flex items-center gap-3 bg-warn/10 border border-warn/30 px-4 py-3">
-            <span className="text-warn text-lg">⚠</span>
-            <span className="font-mono text-[13px] text-warn">{globalError}</span>
+          <div className="mb-6 flex items-center gap-3 bg-down/10 border border-down/30 px-4 py-3 rounded-sm">
+            <span className="text-down">⚠</span>
+            <span className="font-mono text-[12px] text-down">{globalError}</span>
           </div>
         )}
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-          {/* Email */}
           <div>
-            <label className="signal-label">Email</label>
-            <input
-              type="email"
-              autoComplete="email"
-              placeholder="vous@example.com"
-              className={`signal-input ${errors.email ? 'border-warn/60 focus:border-warn' : ''}`}
-              value={form.email}
-              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-            />
-            {errors.email && <p className="signal-error">{errors.email}</p>}
+            <label className="pulse-label">Email</label>
+            <input type="email" autoComplete="email" placeholder="vous@example.com"
+              className={`pulse-input ${errors.email ? 'border-down/50' : ''}`}
+              value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
+            {errors.email && <p className="pulse-error">{errors.email}</p>}
           </div>
 
-          {/* Password */}
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="signal-label mb-0">Mot de passe</label>
-              <Link
-                href="/forgot-password"
-                className="font-mono text-[11px] text-muted hover:text-accent transition-colors tracking-wider"
-              >
-                Mot de passe oublié ?
-              </Link>
-            </div>
+            <label className="pulse-label">Mot de passe</label>
             <div className="relative">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                autoComplete="current-password"
+              <input type={showPassword ? 'text' : 'password'} autoComplete="current-password"
                 placeholder="••••••••"
-                className={`signal-input pr-12 ${errors.password ? 'border-warn/60 focus:border-warn' : ''}`}
-                value={form.password}
-                onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((v) => !v)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-muted hover:text-text transition-colors font-mono text-[11px] tracking-wider"
-              >
+                className={`pulse-input pr-12 ${errors.password ? 'border-down/50' : ''}`}
+                value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} />
+              <button type="button" onClick={() => setShowPassword(v => !v)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 font-mono text-[11px] text-muted hover:text-text2 transition-colors">
                 {showPassword ? 'CACHER' : 'VOIR'}
               </button>
             </div>
-            {errors.password && <p className="signal-error">{errors.password}</p>}
+            {errors.password && <p className="pulse-error">{errors.password}</p>}
           </div>
 
-          {/* Submit */}
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="signal-btn-primary mt-2 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
+          <div className="flex justify-between items-center">
+            <label className="flex items-center gap-2 cursor-pointer group">
+              <input type="checkbox" className="w-3.5 h-3.5 accent-amber-500" />
+              <span className="font-mono text-[11px] text-muted group-hover:text-text2 transition-colors">Se souvenir de moi</span>
+            </label>
+            <Link href="#" className="font-mono text-[11px] text-text2 hover:text-amber-400 transition-colors">Mot de passe oublié ?</Link>
+          </div>
+
+          <button type="submit" disabled={isLoading} className="pulse-btn-primary mt-2">
             {isLoading ? (
-              <>
-                <div className="w-4 h-4 border border-bg border-t-transparent rounded-full animate-spin" />
-                Connexion en cours...
-              </>
-            ) : (
-              <>Accéder à mon compte →</>
-            )}
+              <span className="flex items-center justify-center gap-3">
+                <span className="w-3.5 h-3.5 border-2 border-black/30 border-t-black rounded-full animate-spin inline-block" />
+                Connexion…
+              </span>
+            ) : 'Se connecter →'}
           </button>
         </form>
 
-        {/* Divider */}
-        <div className="flex items-center gap-4 my-8">
-          <div className="flex-1 h-px bg-white/[0.07]" />
-          <span className="font-mono text-[11px] text-muted tracking-widest uppercase">ou</span>
-          <div className="flex-1 h-px bg-white/[0.07]" />
+        <div className="mt-8 pt-6 border-t border-white/[0.06] text-center">
+          <p className="font-mono text-[12px] text-muted">
+            Pas encore de compte ?{' '}
+            <Link href="/register" className="text-amber-400 hover:text-amber-300 transition-colors">Créer un compte</Link>
+          </p>
         </div>
 
-        {/* Register link */}
-        <p className="text-center font-mono text-[13px] text-muted">
-          Pas encore de compte ?{' '}
-          <Link
-            href="/register"
-            className="text-accent hover:text-[#00ffc2] transition-colors font-medium"
-          >
-            Créer un compte gratuit →
-          </Link>
-        </p>
-
-        {/* Demo hint */}
-        <div className="mt-8 bg-surface border border-white/[0.07] px-4 py-3">
-          <p className="font-mono text-[11px] text-muted leading-relaxed">
-            <span className="text-accent">💡 Demo</span> — Créez d'abord un compte via{' '}
-            <Link href="/register" className="text-accent hover:underline">l'inscription</Link>,
-            puis connectez-vous avec vos identifiants.
+        {/* Demo access */}
+        <div className="mt-4 border border-amber-500/20 bg-amber-500/5 px-4 py-3 rounded-sm">
+          <div className="font-mono text-[10px] text-amber-500/70 tracking-widest uppercase mb-1">Accès démo</div>
+          <p className="font-mono text-[11px] text-muted">
+            Créez un compte gratuit pour tester toutes les fonctionnalités — aucune carte bancaire requise.
           </p>
         </div>
       </div>

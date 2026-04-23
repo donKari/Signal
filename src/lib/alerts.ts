@@ -38,7 +38,7 @@ export interface CreateAlertInput {
   currentPrice?: number | null
 }
 
-const ALERTS_KEY = 'signal_alerts'
+const ALERTS_KEY = 'pulse_alerts'
 
 function loadAlerts(): Alert[] {
   if (typeof window === 'undefined') return []
